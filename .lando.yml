@@ -1,0 +1,4 @@
+name: form-submission
+recipe: laravel
+config:
+  webroot: public
