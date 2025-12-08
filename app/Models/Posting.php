@@ -19,4 +19,14 @@ class Posting extends Model
     {
         return $this->hasMany(Image::class);
     }
+
+    /**
+     * Load posting with images and refresh S3 URLs
+     */
+    public function loadWithFreshUrls(): self
+    {
+        $this->load('images');
+        Image::refreshUrls($this->images);
+        return $this;
+    }
 }

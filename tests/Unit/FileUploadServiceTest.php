@@ -142,7 +142,7 @@ class FileUploadServiceTest extends TestCase
 
         $this->assertNotEmpty($url);
         $this->assertIsString($url);
-        $this->assertStringStartsWith('https', $url);
+        $this->assertStringStartsWith('http', $url); // Fake storage uses http://localhost
     }
 
     #[Test]
@@ -171,6 +171,7 @@ class FileUploadServiceTest extends TestCase
         $publicUrl = $this->service->url($path, 'public');
 
         $this->assertNotEquals($s3Url, $publicUrl);
-        $this->assertStringStartsWith('https', $s3Url);
+        $this->assertStringStartsWith('http', $s3Url); // Fake storage uses http://localhost
+        $this->assertStringContainsString('expiration', $s3Url); // S3 URLs have expiration parameter
     }
 }

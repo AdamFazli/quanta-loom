@@ -5,77 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Posting</title>
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-    <style>
-        .image-preview-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .image-preview {
-            position: relative;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            overflow: hidden;
-            aspect-ratio: 1;
-        }
-
-        .image-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .image-preview .remove-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: rgba(255, 0, 0, 0.8);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 25px;
-            height: 25px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            display: inline-block;
-            width: 100%;
-        }
-
-        .file-input-label {
-            display: block;
-            padding: 15px;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .file-input-label:hover {
-            border-color: #007bff;
-            background-color: #f8f9fa;
-        }
-
-        .file-input-label.has-files {
-            border-color: #28a745;
-            background-color: #d4edda;
-        }
-
-        input[type="file"] {
-            position: absolute;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ time() }}">
 </head>
 
 <body>
@@ -147,138 +77,110 @@
         const fileLabel = document.getElementById('fileLabel');
         const selectedFiles = [];
 
-        fileInput.addEventListener('change', function (e) {
-            const files = Array.from(e.target.files);
-
-            files.forEach(file => {
-                if (file.size > 5 * 1024 * 1024) {
-                    alert(`File ${file.name} is too large. Maximum size is 5MB.`);
-                    return;
-                }
-
-                const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-                if (!validTypes.includes(file.type)) {
-                    alert(`File ${file.name} is not a valid image type.`);
-                    return;
-                }
-
-                if (!selectedFiles.find(f => f.name === file.name && f.size === file.size)) {
-                    selectedFiles.push(file);
-                    displayPreview(file);
-                }
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                files.forEach(file => {
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert(`File ${file.name} is too large. Maximum size is 5MB.`);
+                        return;
+                    }
+                    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                    if (!validTypes.includes(file.type)) {
+                        alert(`File ${file.name} is not a valid image type.`);
+                        return;
+                    }
+                    if (!selectedFiles.find(f => f.name === file.name && f.size === file.size)) {
+                        selectedFiles.push(file);
+                        displayPreview(file);
+                    }
+                });
+                updateFileLabel();
             });
-
-            updateFileLabel();
-        });
+        }
 
         function displayPreview(file) {
             const reader = new FileReader();
-
-            reader.onload = function (e) {
+            reader.onload = function(e) {
                 const previewDiv = document.createElement('div');
                 previewDiv.className = 'image-preview';
-                previewDiv.dataset.fileName = file.name;
-                previewDiv.dataset.fileSize = file.size;
-
                 previewDiv.innerHTML = `
-                    <img src="${e.target.result}" alt="${file.name}">
+                    <img src="${e.target.result}" alt="${file.name}" loading="lazy">
                     <button type="button" class="remove-btn" onclick="removeImage(this, '${file.name}', ${file.size})">×</button>
                 `;
-
-                imagePreview.appendChild(previewDiv);
+                if (imagePreview) imagePreview.appendChild(previewDiv);
             };
-
             reader.readAsDataURL(file);
         }
 
         function removeImage(button, fileName, fileSize) {
-            button.closest('.image-preview').remove();
-
+            button.closest('.image-preview')?.remove();
             const index = selectedFiles.findIndex(f => f.name === fileName && f.size === fileSize);
-            if (index > -1) {
-                selectedFiles.splice(index, 1);
-            }
-
+            if (index > -1) selectedFiles.splice(index, 1);
             updateFileInput();
             updateFileLabel();
         }
 
         function updateFileInput() {
+            if (!fileInput) return;
             const dataTransfer = new DataTransfer();
-
-            selectedFiles.forEach(file => {
-                dataTransfer.items.add(file);
-            });
-
+            selectedFiles.forEach(file => dataTransfer.items.add(file));
             fileInput.files = dataTransfer.files;
         }
 
         function updateFileLabel() {
+            if (!fileLabel) return;
             const count = selectedFiles.length;
             if (count > 0) {
                 fileLabel.classList.add('has-files');
-                fileLabel.innerHTML = `
-                    <span><strong>${count}</strong> image${count !== 1 ? 's' : ''} selected</span>
-                    <br>
-                    <small>Click to add more images</small>
-                `;
+                fileLabel.innerHTML = `<span><strong>${count}</strong> image${count !== 1 ? 's' : ''} selected</span><br><small>Click to add more images</small>`;
             } else {
                 fileLabel.classList.remove('has-files');
-                fileLabel.innerHTML = `
-                    <span>Click to select images or drag and drop</span>
-                    <br>
-                    <small>You can select multiple images</small>
-                `;
+                fileLabel.innerHTML = `<span>Click to select images or drag and drop</span><br><small>You can select multiple images</small>`;
             }
         }
 
         const fileInputWrapper = document.querySelector('.file-input-wrapper');
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            fileInputWrapper.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            fileInputWrapper.addEventListener(eventName, () => {
-                fileInputWrapper.style.borderColor = '#007bff';
-                fileInputWrapper.style.backgroundColor = '#f8f9fa';
-            }, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            fileInputWrapper.addEventListener(eventName, () => {
-                fileInputWrapper.style.borderColor = '#ddd';
-                fileInputWrapper.style.backgroundColor = 'transparent';
-            }, false);
-        });
-
-        fileInputWrapper.addEventListener('drop', function (e) {
-            const files = Array.from(e.dataTransfer.files).filter(file =>
-                file.type.startsWith('image/')
-            );
-
-            files.forEach(file => {
-                if (file.size > 5 * 1024 * 1024) {
-                    alert(`File ${file.name} is too large. Maximum size is 5MB.`);
-                    return;
-                }
-
-                if (!selectedFiles.find(f => f.name === file.name && f.size === file.size)) {
-                    selectedFiles.push(file);
-                    displayPreview(file);
-                }
+        if (fileInputWrapper) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fileInputWrapper.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
             });
 
-            updateFileInput();
-            updateFileLabel();
-        }, false);
+            ['dragenter', 'dragover'].forEach(eventName => {
+                fileInputWrapper.addEventListener(eventName, () => {
+                    fileInputWrapper.style.borderColor = '#007bff';
+                    fileInputWrapper.style.backgroundColor = '#f8f9fa';
+                }, false);
+            });
 
-        document.getElementById('postingForm').addEventListener('submit', function (e) {
+            ['dragleave', 'drop'].forEach(eventName => {
+                fileInputWrapper.addEventListener(eventName, () => {
+                    fileInputWrapper.style.borderColor = '#ddd';
+                    fileInputWrapper.style.backgroundColor = 'transparent';
+                }, false);
+            });
+
+            fileInputWrapper.addEventListener('drop', function(e) {
+                const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+                files.forEach(file => {
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert(`File ${file.name} is too large. Maximum size is 5MB.`);
+                        return;
+                    }
+                    if (!selectedFiles.find(f => f.name === file.name && f.size === file.size)) {
+                        selectedFiles.push(file);
+                        displayPreview(file);
+                    }
+                });
+                updateFileInput();
+                updateFileLabel();
+            }, false);
+        }
+
+        document.getElementById('postingForm')?.addEventListener('submit', function(e) {
             if (selectedFiles.length === 0) {
                 e.preventDefault();
                 alert('Please select at least one image to upload.');
@@ -287,5 +189,4 @@
         });
     </script>
 </body>
-
 </html>
