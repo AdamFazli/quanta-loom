@@ -89,8 +89,10 @@
         }
         .file-input-wrapper {
             position: relative;
-            display: inline-block;
+            display: block; /* Change from inline-block */
             width: 100%;
+            margin-bottom: 20px;
+            overflow: hidden; /* Add this to contain the absolute positioned input */
         }
         .file-input-label {
             display: block;
@@ -100,6 +102,8 @@
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
+            position: relative; /* Add this */
+            z-index: 1; /* Add this */
         }
         .file-input-label:hover {
             border-color: #007bff;
@@ -115,6 +119,10 @@
             width: 100%;
             height: 100%;
             cursor: pointer;
+            top: 0; /* Add this */
+            left: 0; /* Add this */
+            z-index: 2; /* Add this - but only for the file input area */
+            pointer-events: auto; /* Ensure it only responds within its container */
         }
     </style>
 </head>
@@ -203,7 +211,9 @@
                 <div class="image-preview-container" id="imagePreview"></div>
             </div>
 
-            <button type="submit" class="btn">Update Posting</button>
+            <div class="form-group" style="margin-top: 30px;">
+                <button type="submit" class="btn">Update Posting</button>
+            </div>
         </form>
     </div>
 
