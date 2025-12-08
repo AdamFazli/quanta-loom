@@ -4,69 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Image</title>
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-    <style>
-        .image-preview-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-        .image-preview {
-            position: relative;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            overflow: hidden;
-            aspect-ratio: 1;
-        }
-        .image-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .image-preview .remove-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: rgba(255, 0, 0, 0.8);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 25px;
-            height: 25px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .file-input-wrapper {
-            position: relative;
-            display: inline-block;
-            width: 100%;
-        }
-        .file-input-label {
-            display: block;
-            padding: 15px;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .file-input-label:hover {
-            border-color: #007bff;
-            background-color: #f8f9fa;
-        }
-        .file-input-label.has-files {
-            border-color: #28a745;
-            background-color: #d4edda;
-        }
-        input[type="file"] {
-            position: absolute;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ time() }}">
 </head>
 <body>
     <div class="container">

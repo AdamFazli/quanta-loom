@@ -182,4 +182,185 @@ class PostingTest extends TestCase
         $this->assertDatabaseMissing('postings', ['id' => $posting->id]);
         $this->assertEquals(0, Image::where('posting_id', $posting->id)->count());
     }
+
+    #[Test]
+    public function posting_edit_page_can_be_accessed(): void
+    {
+        $posting = Posting::create([
+            'title' => 'Test Posting',
+            'description' => 'Test',
+        ]);
+
+        $this->response = $this->get("/postings/{$posting->id}/edit");
+
+        $this->response->assertStatus(200)
+            ->assertViewHas('posting')
+            ->assertSee('Edit Posting')
+            ->assertSee($posting->title);
+    }
+
+    #[Test]
+    public function posting_title_and_description_can_be_updated(): void
+    {
+        $posting = Posting::create([
+            'title' => 'Test Posting',
+            'description' => 'Test',
+        ]);
+
+        $this->response = $this->put("/postings/{$posting->id}", [
+            'title' => 'Updated Title',
+            'description' => 'Updated Description',
+        ]);
+
+        $this->response->assertRedirect(route('postings.show', $posting->id));
+        $this->response->assertSessionHas('success', 'Posting updated successfully!');
+
+        $posting->refresh();
+        $this->assertEquals('Updated Title', $posting->title);
+        $this->assertEquals('Updated Description', $posting->description);
+    }
+
+    #[Test]
+    public function images_can_be_added_to_existing_posting(): void
+    {
+        $posting = Posting::create([
+            'title' => 'Test Posting',
+            'description' => 'Test',
+        ]);
+
+        $file1 = UploadedFile::fake()->image('image1.jpg', 100, 100);
+        $path1 = Storage::disk('s3')->putFile('images', $file1);
+        Image::create([
+            'posting_id' => $posting->id,
+            'title' => 'Image 1',
+            'path' => $path1,
+            'url' => 'https://s3.amazonaws.com/bucket/' . $path1,
+            'original_name' => 'image1.jpg',
+            'mime_type' => 'image/jpeg',
+            'size' => 1024,
+        ]);
+
+        $newFiles = [
+            UploadedFile::fake()->image('image2.jpg', 100, 100),
+            UploadedFile::fake()->image('image3.jpg', 100, 100),
+        ];
+
+        $this->response = $this->put("/postings/{$posting->id}", [
+            'title' => $posting->title,
+            'description' => $posting->description,
+            'images' => $newFiles,
+        ]);
+
+        $this->response->assertRedirect(route('postings.show', $posting->id));
+
+        $this->assertEquals(3, $posting->fresh()->images()->count());
+    }
+
+    #[Test]
+    public function images_can_be_deleted_from_existing_posting(): void
+    {
+        $posting = Posting::create([
+            'title' => 'Test Posting',
+            'description' => 'Test',
+        ]);
+
+        $paths = [];
+        $imageIds = [];
+        for ($i = 1; $i <= 3; $i++) {
+            $file = UploadedFile::fake()->image("test{$i}.jpg", 100, 100);
+            $path = Storage::disk('s3')->putFile('images', $file);
+            $paths[] = $path;
+
+            $image = Image::create([
+                'posting_id' => $posting->id,
+                'title' => "Test Image {$i}",
+                'path' => $path,
+                'url' => 'https://s3.amazonaws.com/bucket/' . $path,
+                'original_name' => "test{$i}.jpg",
+                'mime_type' => 'image/jpeg',
+                'size' => 1024,
+            ]);
+            $imageIds[] = $image->id;
+        }
+        
+        $this->response = $this->put("/postings/{$posting->id}", [
+            'title' => $posting->title,
+            'description' => $posting->description,
+            'delete_images' => [$imageIds[0], $imageIds[1]],
+        ]);
+
+        $this->response->assertRedirect(route('postings.show', $posting->id));
+
+        $this->assertEquals(1, $posting->fresh()->images()->count());
+
+        Storage::disk('s3')->assertMissing($paths[0]);
+        Storage::disk('s3')->assertMissing($paths[1]);
+        Storage::disk('s3')->assertExists($paths[2]);
+    }
+
+    #[Test]
+    public function posting_can_be_updated_with_new_images_and_deleted_images(): void
+    {
+        $posting = Posting::create([
+            'title' => 'Test Posting',
+            'description' => 'Test',
+        ]);
+
+        $initialPaths = [];
+        $imageIds = [];
+        for ($i = 1; $i <= 2; $i++) {
+            $file = UploadedFile::fake()->image("test{$i}.jpg", 100, 100);
+            $path = Storage::disk('s3')->putFile('images', $file);
+            $initialPaths[] = $path;
+
+            $image = Image::create([
+                'posting_id' => $posting->id,
+                'title' => "Test Image {$i}",
+                'path' => $path,
+                'url' => 'https://s3.amazonaws.com/bucket/' . $path,
+                'original_name' => "test{$i}.jpg",
+                'mime_type' => 'image/jpeg',
+                'size' => 1024,
+            ]);
+            $imageIds[] = $image->id;
+        }
+        
+        $newFiles = [
+            UploadedFile::fake()->image('image3.jpg', 100, 100),
+            UploadedFile::fake()->image('image4.jpg', 100, 100),
+        ];
+
+        $this->response = $this->put("/postings/{$posting->id}", [
+            'title' => $posting->title,
+            'description' => $posting->description,
+            'images' => $newFiles,
+            'delete_images' => [$imageIds[0]],
+        ]);
+
+        $this->response->assertRedirect(route('postings.show', $posting->id));
+
+        $posting->refresh();
+        $this->assertEquals(3, $posting->images()->count());
+        $this->assertEquals('Test Posting', $posting->title);
+        $this->assertEquals('Test', $posting->description);
+
+        Storage::disk('s3')->assertMissing($initialPaths[0]);
+        Storage::disk('s3')->assertExists($initialPaths[1]);
+    }
+
+    #[Test]
+    public function posting_update_required_fields(): void
+    {
+        $posting = Posting::create([
+            'title' => 'Test Posting',
+            'description' => 'Test',
+        ]);
+
+        $this->response = $this->put("/postings/{$posting->id}", [
+            'title' => '',
+        ]);
+        
+        $this->response->assertSessionHasErrors('title');
+        $this->response->assertRedirect(route('postings.edit', $posting->id));
+    }
 }

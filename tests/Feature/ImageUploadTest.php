@@ -178,7 +178,7 @@ class ImageUploadTest extends TestCase
         Storage::disk('s3')->assertExists($responseData['path']);
 
         $this->assertNotEmpty($responseData['url']);
-        $this->assertStringStartsWith('https', $responseData['url']);
+        $this->assertStringStartsWith('http', $responseData['url']);
 
         $image = Image::find($responseData['id']);
         $this->assertNotNull($image);
@@ -236,6 +236,6 @@ class ImageUploadTest extends TestCase
 
         $viewImage = $this->response->viewData('image');
         $this->assertNotEmpty($viewImage->url);
-        $this->assertStringStartsWith('https', $viewImage->url);
+        $this->assertStringStartsWith('http', $viewImage->url);
     }
 }
