@@ -115,6 +115,7 @@
             </div>
             <div class="posting-actions">
                 <a href="{{ route('postings.index') }}" class="btn">Back to Postings</a>
+                <a href="{{ route('postings.edit', $posting->id) }}" class="btn" style="background: #28a745;">Edit Posting</a>
                 <form action="{{ route('postings.destroy', $posting->id) }}" method="POST" 
                     style="display: inline;" 
                     onsubmit="return confirm('Are you sure you want to delete this posting? All {{ $posting->images->count() }} image(s) will be deleted. This action cannot be undone.');">

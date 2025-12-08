@@ -17,7 +17,8 @@ Route::get('/postings/create', [PostingController::class, 'create'])->name('post
 Route::post('/postings', [PostingController::class, 'store'])->name('postings.store');
 Route::get('/postings/{id}', [PostingController::class, 'show'])->name('postings.show');
 Route::delete('/postings/{id}', [PostingController::class, 'destroy'])->name('postings.destroy');
-
+Route::get('/postings/{id}/edit', [PostingController::class, 'edit'])->name('postings.edit');
+Route::put('/postings/{id}', [PostingController::class, 'update'])->name('postings.update');
 
 Route::post('/api/postings', [PostingController::class, 'storeApi'])->name('postings.store.api');
 Route::delete('/api/postings/{id}', [PostingController::class, 'destroyApi'])->name('postings.destroy.api');

@@ -91,16 +91,89 @@ class PostingController extends Controller
         return view('postings.show', compact('posting'));
     }
 
+    public function edit(string $id): View
+    {
+        $posting = Posting::with('images')->findOrFail($id);
+
+        foreach ($posting->images as $image) {
+            if (str_contains($image->url, 's3.amazonaws.com') || str_contains($image->url, 's3.')) {
+                $fileUploadService = new FileUploadService();
+                $image->url = $fileUploadService->url($image->path, 's3');
+            }
+        }
+
+        return view('postings.edit', compact('posting'));
+    }
+
+    public function update(Request $request, string $id): RedirectResponse
+    {
+        try {
+            $posting = Posting::findOrFail($id);
+
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'images.*' => 'image|mimes:jpeg,png,gif,webp|max:5120',
+                'delete_images' => 'nullable|array',
+                'delete_images.*' => 'exists:images,id',
+            ]);
+
+            $posting->update([
+                'title' => $request->input('title'),
+                'description' => $request->input('description', ''),
+            ]);
+
+            if ($request->has('delete_images')) {
+                foreach ($request->input('delete_images') as $imageId) {
+                    $image = Image::where('id', $imageId)
+                        ->where('posting_id', $posting->id)
+                        ->first();
+
+                    if ($image) {
+                        Storage::disk('s3')->delete($image->path);
+                        $image->delete();
+                    }
+                }
+            }
+
+            if ($request->hasFile('images')) {
+                $fileUploadService = new FileUploadService();
+
+                foreach ($request->file('images') as $file) {
+                    $path = $fileUploadService->upload($file, 's3', 'images', $posting->id);
+                    $url = $fileUploadService->url($path, 's3');
+
+                    Image::create([
+                        'posting_id' => $posting->id,
+                        'title' => $file->getClientOriginalName(),
+                        'description' => '',
+                        'path' => $path,
+                        'url' => $url,
+                        'original_name' => $file->getClientOriginalName(),
+                        'mime_type' => $file->getMimeType(),
+                        'size' => $file->getSize(),
+                    ]);
+                }
+            }
+
+            return redirect()->route('postings.show', $posting->id)
+                ->with('success', 'Posting updated successfully!');
+        } catch (Exception $e) {
+            return redirect()->route('postings.edit', $id)
+                ->with('error', 'Failed to update posting: ' . $e->getMessage());
+        }
+    }
+
     public function destroy(string $id): RedirectResponse
     {
         try {
             $posting = Posting::with('images')->findOrFail($id);
 
             foreach ($posting->images as $image) {
-                Storage::disk('s3')->delete($image->path);
+                Storage::disk('s3')->delete($image->path); // delete dari s3
             }
 
-            $posting->delete();
+            $posting->delete(); // delete dari db
 
             return redirect()->route('postings.index')
                 ->with('success', 'Posting deleted successfully!');
